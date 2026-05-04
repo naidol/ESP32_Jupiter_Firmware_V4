@@ -51,3 +51,13 @@ void display_oled_imu_data(int8_t temp, float_t heading, float_t pitch, float_t 
     // Populate the Oled Display
     oled_ssd1306.display();
 }
+
+// Used to display IMU calib save/restore status
+void display_oled_alert(const char* message) {
+    oled_ssd1306.clearDisplay();
+    oled_ssd1306.setTextSize(2); // Larger text for alerts
+    oled_ssd1306.setTextColor(SSD1306_WHITE);
+    oled_ssd1306.setCursor(0, 0);
+    oled_ssd1306.println(message);
+    oled_ssd1306.display();
+}

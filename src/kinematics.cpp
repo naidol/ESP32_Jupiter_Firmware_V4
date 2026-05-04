@@ -1,28 +1,30 @@
 #include "kinematics.h"
 
-// Constructor to initialize wheel radius and wheel separation
-Kinematics::Kinematics(float wheel_radius, float wheel_separation)
-    : wheel_radius_(wheel_radius), wheel_separation_(wheel_separation) {}
+// Constructor updated to initialize wheel base
+Kinematics::Kinematics(float wheel_radius, float wheel_separation, float wheel_base)
+    : wheel_radius_(wheel_radius), wheel_separation_(wheel_separation), wheel_base_(wheel_base) {}
 
-// Function to calculate wheel speeds (m/s) based on input linear and angular velocities
-Kinematics::WheelSpeeds Kinematics::computeWheelSpeeds(float linear_velocity_x, float angular_velocity_z) {
+// Full Mecanum Inverse Kinematics (Cmd_Vel -> Wheel Speeds)
+Kinematics::WheelSpeeds Kinematics::computeWheelSpeeds(float linear_velocity_x, float linear_velocity_y, float angular_velocity_z) {
     WheelSpeeds speeds;
 
-    // Calculate the individual wheel speeds based on the robot's linear and angular velocity
-    speeds.motor1 = linear_velocity_x - (angular_velocity_z * wheel_separation_ / 2.0);
-    speeds.motor2 = linear_velocity_x + (angular_velocity_z * wheel_separation_ / 2.0);
-    speeds.motor3 = speeds.motor1;
-    speeds.motor4 = speeds.motor2;
+    // L is half the wheelbase, W is half the track width
+    float L = wheel_base_ / 2.0;
+    float W = wheel_separation_ / 2.0;
+
+    // Mecanum wheel speed mixing
+    speeds.motor1 = linear_velocity_x - linear_velocity_y - (angular_velocity_z * (L + W)); // Front-Left
+    speeds.motor2 = linear_velocity_x + linear_velocity_y + (angular_velocity_z * (L + W)); // Front-Right
+    speeds.motor3 = linear_velocity_x + linear_velocity_y - (angular_velocity_z * (L + W)); // Rear-Left
+    speeds.motor4 = linear_velocity_x - linear_velocity_y + (angular_velocity_z * (L + W)); // Rear-Right
 
     return speeds;
 }
 
-// Function to calculate wheel RPMs based on input linear and angular velocities
-Kinematics::MotorRPM Kinematics::calculateRPM(float linear_velocity_x, float angular_velocity_z) {
+Kinematics::MotorRPM Kinematics::calculateRPM(float linear_velocity_x, float linear_velocity_y, float angular_velocity_z) {
     MotorRPM rpm;
 
-    // First calculate the wheel speeds using the computeWheelSpeeds function
-    WheelSpeeds speeds = computeWheelSpeeds(linear_velocity_x, angular_velocity_z);
+    WheelSpeeds speeds = computeWheelSpeeds(linear_velocity_x, linear_velocity_y, angular_velocity_z);
 
     // Convert the wheel speeds (m/s) to RPM
     rpm.motor1 = (speeds.motor1 / (2.0 * M_PI * wheel_radius_)) * 60.0;
@@ -33,25 +35,25 @@ Kinematics::MotorRPM Kinematics::calculateRPM(float linear_velocity_x, float ang
     return rpm;
 }
 
-// Function to calculate robot velocities based on wheel RPMs
+// Full Mecanum Forward Kinematics (Wheel RPM -> Odom Velocities)
 Kinematics::Velocities Kinematics::getVelocities(float front_left_rpm, float front_right_rpm, float back_left_rpm, float back_right_rpm) {
-    // Convert RPM to linear velocity (m/s) for each wheel
+    
     float front_left_velocity = (front_left_rpm * 2.0f * M_PI * wheel_radius_) / 60.0f;
     float front_right_velocity = (front_right_rpm * 2.0f * M_PI * wheel_radius_) / 60.0f;
     float back_left_velocity = (back_left_rpm * 2.0f * M_PI * wheel_radius_) / 60.0f;
     float back_right_velocity = (back_right_rpm * 2.0f * M_PI * wheel_radius_) / 60.0f;
 
-    // Calculate the average linear velocity (assuming differential drive, so left and right side)
-    float linear_velocity_x = (front_left_velocity + back_left_velocity + front_right_velocity + back_right_velocity) / 4.0f;
+    float L = wheel_base_ / 2.0;
+    float W = wheel_separation_ / 2.0;
 
-    // Calculate the angular velocity around the z-axis (yaw)
-    // (left wheels velocity - right wheels velocity) / wheel separation gives angular velocity in rad/s
-    float angular_velocity_z = ((back_right_velocity + front_right_velocity) - (back_left_velocity + front_left_velocity)) / wheel_separation_;
+    // Mecanum inverse matrices for Odom
+    float linear_velocity_x = (front_left_velocity + front_right_velocity + back_left_velocity + back_right_velocity) / 4.0f;
+    float linear_velocity_y = (-front_left_velocity + front_right_velocity + back_left_velocity - back_right_velocity) / 4.0f;
+    float angular_velocity_z = (-front_left_velocity + front_right_velocity - back_left_velocity + back_right_velocity) / (4.0f * (L + W));
 
-    // Return the computed velocities
     Velocities velocities;
     velocities.linear_x = linear_velocity_x;
-    velocities.linear_y = 0.0f;  // Assuming no lateral movement (sideways velocity)
+    velocities.linear_y = linear_velocity_y; 
     velocities.angular_z = angular_velocity_z;
     
     return velocities;

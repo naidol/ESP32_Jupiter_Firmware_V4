@@ -17,4 +17,3 @@ void setup_imu(sensor_msgs__msg__Imu* imu_msg);
 
 // Routine called by Timer Callback in Main.cpp to provide imu data
 void get_imu_data(sensor_msgs__msg__Imu* imu_msg);
-

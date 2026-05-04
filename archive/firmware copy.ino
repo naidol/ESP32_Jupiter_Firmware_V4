@@ -154,7 +154,6 @@ PID motor4_pid(PWM_MIN, PWM_MAX, K_P, K_I, K_D);
 
 
 float target_linear_velocity = 0;
-float target_linear_y_velocity = 0.0; // <-- ADD THIS
 float target_angular_velocity = 0;
 
 // The function moves the robot based on cmd_vel received in the Twist msg from the ROS2 system
@@ -173,7 +172,7 @@ void moveBase(float dt)
     // }
     
     //Get the required wheel RPM using the kinematic model of the robot from incoming cmd_vel msg
-    Kinematics::MotorRPM req_rpm = kinematics.calculateRPM(target_linear_velocity, target_linear_y_velocity, target_angular_velocity);
+    Kinematics::MotorRPM req_rpm = kinematics.calculateRPM(target_linear_velocity, target_angular_velocity);
 
     // Get the current RPM for each motor
     current_rpm1 = motor1_encoder.getRPM();
@@ -182,7 +181,7 @@ void moveBase(float dt)
     current_rpm4 = motor4_encoder.getRPM();
 
     // If command velocities = 0 then stop the robot
-    if (target_linear_velocity == 0 && target_linear_y_velocity == 0 && target_angular_velocity == 0) {
+    if (target_linear_velocity == 0 && target_angular_velocity == 0) {
         // apply the brakes for full stop
         
         target_rpm1 = motor1_pid.compute(req_rpm.motor1, current_rpm1, dt);
@@ -257,13 +256,15 @@ void publishData()
     RCSOFTCHECK(rcl_publish(&odom_publisher, &odom_msg, NULL));  
 }
 
-void cmdVelCallback(const void * msgin) {
-    const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-    
-    // Store the targets for moveBase to process
+void cmdVelCallback(const void *msg_in) {
+    const geometry_msgs__msg__Twist *msg = (const geometry_msgs__msg__Twist *)msg_in;
+
     target_linear_velocity = msg->linear.x;
-    target_linear_y_velocity = msg->linear.y; // <-- Store the strafe command
     target_angular_velocity = msg->angular.z;
+
+    // digitalWrite(ESP32_LED, !digitalRead(ESP32_LED));
+    // prev_cmd_time = millis();
+    
 }
 
 void timerCallback(rcl_timer_t *timer, int64_t last_call_time) {

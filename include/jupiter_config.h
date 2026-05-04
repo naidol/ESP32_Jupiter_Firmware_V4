@@ -47,15 +47,16 @@
 #define COUNTS_PER_REV2 1320                // wheel2 encoder's no of ticks per rev
 #define COUNTS_PER_REV3 1320                // wheel3 encoder's no of ticks per rev
 #define COUNTS_PER_REV4 1320                // wheel4 encoder's no of ticks per rev
-#define WHEEL_DIAMETER 0.090                // wheel's diameter in meters
+#define WHEEL_DIAMETER 0.09556                // wheel's diameter in meters
 #define LR_WHEELS_DISTANCE 0.400            // distance between left and right wheels
 #define PWM_BITS 10                         // PWM Resolution of the microcontroller
 #define PWM_FREQUENCY 8000                  // PWM Frequency
 #define PWM_MAX pow(2, PWM_BITS) - 1        // e.g. for 8-bit PWM_MAX = 2^8 - 1 = 256 - 1 = 255
 #define PWM_MIN -PWM_MAX
 #define USE_PID true                        // true = PID controller ON. Switch OFF (false). See Note (1) below
-#define WHEEL_RADIUS 0.045                  // in meters
-#define WHEEL_SEPARATION 0.400              // distance between left and rigth wheels (centre to centre) in meters
+#define WHEEL_RADIUS 0.04778                  // in meters
+#define WHEEL_SEPARATION 0.350              // distance between left and rigth wheels (centre to centre) in meters
+#define WHEEL_BASE 0.180                    // <-- ADD THIS: distance from front axle to rear axle in meters
 #define PWM_FWD_MIN 1                       // these two PWM_FWD & PWM_REV are needed to balance the startup power needed 
 #define PWM_REV_MIN 1                       // for each direction (helps to drive straight)
 

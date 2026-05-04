@@ -7,14 +7,14 @@ class Kinematics {
 public:
     struct Velocities {
         float linear_x;  // Linear velocity in the x direction (forward)
-        float linear_y;  // Linear velocity in the y direction (sideways/strafing)
+        float linear_y;  // Linear velocity in the y direction (sideways, usually zero for diff-drive)
         float angular_z; // Angular velocity around the z axis (yaw)
     };
 
     struct WheelSpeeds {
         float motor1;   // Linear velocity of the front-left wheel (m/s)
-        float motor2;   // Linear velocity of the front-right wheel (m/s)
-        float motor3;   // Linear velocity of the back-left wheel (m/s)
+        float motor2;  // Linear velocity of the front-right wheel (m/s)
+        float motor3;    // Linear velocity of the back-left wheel (m/s)
         float motor4;   // Linear velocity of the back-right wheel (m/s)
     };
 
@@ -25,19 +25,21 @@ public:
         float motor4;
     };
 
-    // Added wheel_base to the constructor for Mecanum geometry
-    Kinematics(float wheel_radius, float wheel_separation, float wheel_base);
+    // Constructor to initialize wheel radius and wheel separation
+    Kinematics(float wheel_radius, float wheel_separation);
 
-    // Added linear_velocity_y to the calculation signatures
-    WheelSpeeds computeWheelSpeeds(float linear_velocity_x, float linear_velocity_y, float angular_velocity_z);
-    MotorRPM calculateRPM(float linear_velocity_x, float linear_velocity_y, float angular_velocity_z);
+    // Function to calculate wheel speeds (m/s) based on input linear and angular velocities
+    WheelSpeeds computeWheelSpeeds(float linear_velocity_x, float angular_velocity_z);
 
+    // Function to calculate wheel RPMs based on input linear and angular velocities
+    MotorRPM calculateRPM(float linear_velocity_x, float angular_velocity_z);
+
+    // Function to calculate robot velocities based on wheel RPMs
     Velocities getVelocities(float front_left_rpm, float front_right_rpm, float back_left_rpm, float back_right_rpm);
 
 private:
     float wheel_radius_;      // Radius of the wheel (meters)
     float wheel_separation_;  // Distance between the left and right wheels (meters)
-    float wheel_base_;        // Distance between the front and rear axles (meters)
 };
 
 #endif // KINEMATICS_H

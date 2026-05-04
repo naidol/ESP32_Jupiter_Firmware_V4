@@ -24,3 +24,6 @@ void display_oled_imu_data(int8_t temp, float_t heading, float_t pitch, float_t 
                             float_t gx, float_t gy, float_t gz,
                             uint8_t system, uint8_t gyro, uint8_t accel, uint8_t mag);
 
+// Routine to provide IMU calibration save/restore status
+void display_oled_alert(const char* message);
+
