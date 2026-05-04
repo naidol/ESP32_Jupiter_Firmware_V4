@@ -294,130 +294,87 @@ void timerCallback(rcl_timer_t *timer, int64_t last_call_time) {
 
 
 void setup() {
-    // Initialize serial for debugging
     Serial.begin(115200);
 
-    // Set initial PWM values to zero to prevent motors from moving at startup
+    // --- Hardware init: all blocking delays happen BEFORE micro-ROS session is created ---
+
     motor1.setSpeed(0);
     motor2.setSpeed(0);
     motor3.setSpeed(0);
     motor4.setSpeed(0);
 
-    // Initialise Encoders and attach interrupts and reset the counters
     motor1_encoder.begin();
     motor2_encoder.begin();
     motor3_encoder.begin();
     motor4_encoder.begin();
-    delay(3000);            // delay to allow wheels spin on startup to stop & reset counters
+    delay(3000);
     motor1_encoder.reset();
     motor2_encoder.reset();
     motor3_encoder.reset();
     motor4_encoder.reset();
 
+    Wire.begin(21, 22);
+    setup_oled_display();
+    setup_imu(&imu_msg);
 
-    // Set Micro-ROS transport
+    pinMode(ESP32_LED, OUTPUT);
+    digitalWrite(ESP32_LED, LOW);
+    flashLED(5);
+
+    // --- micro-ROS init: session created here, executor spins within ~200 ms ---
+
     set_microros_serial_transports(Serial);
-
     allocator = rcl_get_default_allocator();
-
-    // Create init_options and support
     rclc_support_init(&support, 0, NULL, &allocator);
-
-    // Create node
     rclc_node_init_default(&node, "esp32_node", "", &support);
 
-
-    // Create IMU publisher
     rclc_publisher_init_default(
-        &imu_publisher,
-        &node,
+        &imu_publisher, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
         "imu/data");
 
-    // Create cmd_vel subscriber
     rclc_subscription_init_default(
-        &cmd_vel_subscriber,
-        &node,
+        &cmd_vel_subscriber, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
         "cmd_vel");
-    
-    // --- ADD THE NEW SUBSCRIBER INITIALIZATION ---
+
     rclc_subscription_init_default(
-        &save_imu_subscriber,
-        &node,
+        &save_imu_subscriber, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Empty),
         "/save_imu");
 
-    // Create odometry publisher
     rclc_publisher_init_default(
-        &odom_publisher,
-        &node,
+        &odom_publisher, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
         "/odom/unfiltered");
 
-    // ---------------------------Encoder TEST --------------------------
-    
-    // Create encoder publisher
     rclc_publisher_init_default(
-        &encoder_publisher,
-        &node,
+        &encoder_publisher, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
         "wheel_encoders");
 
-    // Initialize encoder message
     encoder_msg.data.size = 4;
     encoder_msg.data.capacity = 4;
     encoder_msg.data.data = (int32_t *)malloc(encoder_msg.data.capacity * sizeof(int32_t));
 
-    // Create speed publisher
     rclc_publisher_init_default(
-        &speed_publisher,
-        &node,
+        &speed_publisher, &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32MultiArray),
         "wheel_speeds");
 
-    // Initialize speed message
     speed_msg.data.size = 5;
     speed_msg.data.capacity = 5;
     speed_msg.data.data = (float_t *)malloc(speed_msg.data.capacity * sizeof(float_t));
 
-
-    // ___________________ end encoder test ______________________________
-    
-    // Create timer
     rclc_timer_init_default(
-        &timer,
-        &support,
-        RCL_MS_TO_NS(20), // The timer callback will execute every 20 ms = 50hz - fastest the timer for this code can loop.
+        &timer, &support,
+        RCL_MS_TO_NS(20),
         timerCallback);
-    
-    // Create executor which only handles timer and subscriber callbacks
-    rclc_executor_init(&executor, &support.context, 4, &allocator);  // adjust the number of handles for each callback added
+
+    rclc_executor_init(&executor, &support.context, 4, &allocator);
     rclc_executor_add_timer(&executor, &timer);
     rclc_executor_add_subscription(&executor, &cmd_vel_subscriber, &cmd_vel_msg, &cmdVelCallback, ON_NEW_DATA);
-    // --- ADD THE NEW SUBSCRIPTION TO THE EXECUTOR ---
     rclc_executor_add_subscription(&executor, &save_imu_subscriber, &save_imu_msg, &saveImuCallback, ON_NEW_DATA);
-
-    // Initialise (setup) IMU and OLED
-    //setup_imu(&imu_msg);   // built for Bosch BNO055 imu. Replace imu_bno055.h and .cpp if needed
-    //setup_oled_display();  // comment this out, if OLED SSD1306 on controller board not connected
-    // 1. Start the I2C Bus first
-    Wire.begin(21, 22);
-
-    // 2. Turn on the OLED so it is ready for alerts
-    setup_oled_display();  
-
-    // 3. Setup the IMU (which will now successfully print to the OLED)
-    setup_imu(&imu_msg);
-
-    // Set up LED pin
-    pinMode(ESP32_LED, OUTPUT);
-    digitalWrite(ESP32_LED, LOW);
-
-    // synchronize time with the agent
-    //syncTime();
-    flashLED(5);
-
 }
 
 void loop() {
