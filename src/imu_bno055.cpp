@@ -69,29 +69,33 @@ void setup_imu(sensor_msgs__msg__Imu* imu_msg) {
 }
 
 // 3. THE SAVE EXECUTION (Called by the main loop, not the callback)
+// Retries silently every loop until G==3 && A==3 && M==3, then verifies the NVS write.
 void perform_imu_save() {
     uint8_t system, gyro, accel, mag;
     bno.getCalibration(&system, &gyro, &accel, &mag);
 
-    // Enforce strict calibration before saving
-    if (gyro == 3 && accel == 3 && mag == 3) {
-        adafruit_bno055_offsets_t newCalib;
-        bno.getSensorOffsets(newCalib);
-        
-        Preferences prefs; 
-        prefs.begin("bno_cal", false); // Open in Read/Write mode
-        prefs.putBytes("offsets", &newCalib, sizeof(newCalib));
-        prefs.end();
-        
+    if (gyro != 3 || accel != 3 || mag != 3) {
+        // Calibration not ready — keep flag set, retry next loop silently
+        return;
+    }
+
+    adafruit_bno055_offsets_t newCalib;
+    bno.getSensorOffsets(newCalib);
+
+    Preferences prefs;
+    prefs.begin("bno_cal", false); // Read/Write mode
+    size_t written = prefs.putBytes("offsets", &newCalib, sizeof(newCalib));
+    prefs.end();
+
+    if (written == sizeof(newCalib)) {
+        trigger_imu_save = false; // Clear only on verified success
         display_oled_alert("SAVE:\nSUCCESS");
         delay(2000);
     } else {
-        display_oled_alert("SAVE:\nFAILED");
+        // NVS write failed — keep flag set so it retries next loop
+        display_oled_alert("SAVE:\nNVS ERR");
         delay(2000);
     }
-    
-    // Reset the flag so it only saves once
-    trigger_imu_save = false; 
 }
 
 // Get IMU data and update the &imu_msg and refresh the Oled display with latest IMU data 

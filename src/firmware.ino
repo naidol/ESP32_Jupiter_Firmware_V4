@@ -323,10 +323,6 @@ void setup() {
     // Create init_options and support
     rclc_support_init(&support, 0, NULL, &allocator);
 
-    // ---------------------  NEW GPT CODE -------------------------------
-    rcl_node_t node = rcl_get_zero_initialized_node();
-    // ---------------------- END NEW GPT CODE ---------------------------
-
     // Create node
     rclc_node_init_default(&node, "esp32_node", "", &support);
 
