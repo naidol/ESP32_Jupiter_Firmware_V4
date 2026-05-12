@@ -145,7 +145,9 @@ void rclErrorLoop()
 void syncTime()
 {
     unsigned long now = millis();
-    RCCHECK(rmw_uros_sync_session(10));
+    // Non-fatal: skip time sync if agent is busy rather than entering rclErrorLoop.
+    // 1000ms timeout handles Jetson startup load (Whisper/camera initialising).
+    if (rmw_uros_sync_session(1000) != RMW_RET_OK) return;
     unsigned long long ros_time_ms = rmw_uros_epoch_millis();
     time_offset = ros_time_ms - now;
 }
@@ -437,7 +439,7 @@ void loop()
         case WAITING_AGENT:
             // Ping every 200 ms; advance only when agent responds.
             EXECUTE_EVERY_N_MS(200,
-                agent_state = (rmw_uros_ping_agent(100, 1) == RMW_RET_OK)
+                agent_state = (rmw_uros_ping_agent(200, 3) == RMW_RET_OK)
                               ? AGENT_AVAILABLE : WAITING_AGENT;
             );
             break;
@@ -455,8 +457,9 @@ void loop()
 
         case AGENT_CONNECTED:
             // Check connection every 200 ms; stay connected while agent is alive.
+            // 200ms × 3 attempts = tolerates brief agent busy periods without dropping.
             EXECUTE_EVERY_N_MS(200,
-                agent_state = (rmw_uros_ping_agent(100, 1) == RMW_RET_OK)
+                agent_state = (rmw_uros_ping_agent(200, 3) == RMW_RET_OK)
                               ? AGENT_CONNECTED : AGENT_DISCONNECTED;
             );
             if (agent_state == AGENT_CONNECTED) {
@@ -476,6 +479,7 @@ void loop()
             motor2.setSpeed(0);
             motor3.setSpeed(0);
             motor4.setSpeed(0);
+            delay(500);  // allow heap to settle before next create_entities()
             agent_state = WAITING_AGENT;
             break;
     }
