@@ -457,9 +457,10 @@ void loop()
 
         case AGENT_CONNECTED:
             // Check connection every 200 ms; stay connected while agent is alive.
-            // 200ms × 3 attempts = tolerates brief agent busy periods without dropping.
+            // 500ms × 5 attempts = 2.5s tolerance for Jetson startup load
+            // (camera init takes ~28s and pegs CPU/serial during that window).
             EXECUTE_EVERY_N_MS(200,
-                agent_state = (rmw_uros_ping_agent(200, 3) == RMW_RET_OK)
+                agent_state = (rmw_uros_ping_agent(500, 5) == RMW_RET_OK)
                               ? AGENT_CONNECTED : AGENT_DISCONNECTED;
             );
             if (agent_state == AGENT_CONNECTED) {
@@ -479,7 +480,7 @@ void loop()
             motor2.setSpeed(0);
             motor3.setSpeed(0);
             motor4.setSpeed(0);
-            delay(500);  // allow heap to settle before next create_entities()
+            delay(2000);  // allow DDS cleanup and heap to settle before next create_entities()
             agent_state = WAITING_AGENT;
             break;
     }
