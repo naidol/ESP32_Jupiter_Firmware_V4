@@ -451,6 +451,7 @@ void loop()
                 flashLED(3);
             } else {
                 destroy_entities();
+                delay(2000);  // allow DDS cleanup + host load to settle before retry
                 agent_state = WAITING_AGENT;
             }
             break;
