@@ -100,6 +100,12 @@ Odometry odometry;
 // ---- ADC state ----
 static esp_adc_cal_characteristics_t adc_chars;
 
+// ---- Battery moving average (10-sample / 10-second window at 1 Hz) ----
+static float   bat_ma_buf[BATTERY_MA_SIZE] = {};
+static uint8_t bat_ma_idx   = 0;
+static uint8_t bat_ma_count = 0;
+static float   bat_ma_sum   = 0.0f;
+
 // ---- Hardware instances ----
 Motor motor1(MOTOR1_PWM, MOTOR1_DIR, 0, PWM_FREQUENCY, PWM_BITS);
 Motor motor2(MOTOR2_PWM, MOTOR2_DIR, 1, PWM_FREQUENCY, PWM_BITS);
@@ -183,7 +189,16 @@ float read_battery_voltage()
 
 void publish_battery()
 {
-    float v = read_battery_voltage();
+    float v_raw = read_battery_voltage();
+
+    // Circular-buffer moving average — subtract oldest sample, add newest
+    bat_ma_sum -= bat_ma_buf[bat_ma_idx];
+    bat_ma_buf[bat_ma_idx] = v_raw;
+    bat_ma_sum += v_raw;
+    bat_ma_idx = (bat_ma_idx + 1) % BATTERY_MA_SIZE;
+    if (bat_ma_count < BATTERY_MA_SIZE) bat_ma_count++;
+
+    float v = bat_ma_sum / bat_ma_count;
     float pct = (v - BATTERY_V_MIN) / (BATTERY_V_MAX - BATTERY_V_MIN);
     if (pct < 0.0f) pct = 0.0f;
     if (pct > 1.0f) pct = 1.0f;

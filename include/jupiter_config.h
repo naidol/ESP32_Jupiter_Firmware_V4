@@ -36,6 +36,7 @@
 #define BATTERY_V_DIV        (20.0f / 120.0f)   // R2/(R1+R2): 20k/(100k+20k)
 #define BATTERY_V_MIN        12.0f               // 4S Li-Ion depleted
 #define BATTERY_V_MAX        16.8f               // 4S Li-Ion full charge
+#define BATTERY_MA_SIZE      10                  // moving-average window (samples at 1 Hz = 10 s)
 
 
 // FOR PID
