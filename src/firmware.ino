@@ -473,10 +473,10 @@ void loop()
 
         case AGENT_CONNECTED:
             // Check connection every 200 ms; stay connected while agent is alive.
-            // 500ms × 5 attempts = 2.5s tolerance for Jetson startup load
-            // (camera init takes ~28s and pegs CPU/serial during that window).
+            // 2000ms × 5 attempts = 10s tolerance — survives OrbbecSDK camera
+            // init which saturates USB and stalls serial for up to ~8s.
             EXECUTE_EVERY_N_MS(200,
-                agent_state = (rmw_uros_ping_agent(500, 5) == RMW_RET_OK)
+                agent_state = (rmw_uros_ping_agent(2000, 5) == RMW_RET_OK)
                               ? AGENT_CONNECTED : AGENT_DISCONNECTED;
             );
             if (agent_state == AGENT_CONNECTED) {
