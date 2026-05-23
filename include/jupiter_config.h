@@ -33,7 +33,7 @@
 // Battery ADC (GPIO34 = ADC1_CHANNEL_6, input-only pin)
 #define BATTERY_ADC_CHANNEL  ADC1_CHANNEL_6
 #define BATTERY_ADC_ATTEN    ADC_ATTEN_DB_11
-#define BATTERY_V_DIV        (20.0f / 120.0f)   // R2/(R1+R2): 20k/(100k+20k)
+#define BATTERY_V_DIV        (0.16510f)           // R2/(R1+R2) calibrated: nominal 20/120, scaled to match multimeter 16.152V @ firmware 16.0V
 #define BATTERY_V_MIN        12.0f               // 4S Li-Ion depleted
 #define BATTERY_V_MAX        16.8f               // 4S Li-Ion full charge
 #define BATTERY_MA_SIZE      10                  // moving-average window (samples at 1 Hz = 10 s)
